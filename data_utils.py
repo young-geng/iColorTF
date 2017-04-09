@@ -27,31 +27,20 @@ def load_image_from_path(input_queue):
 
 
 def read_imagenet_data(path, batch_size, num_epochs, shuffle=True):
-    # Reads pfathes of images together with their labels
     image_list, label_list = read_image_path(path)
     
     images = tf.convert_to_tensor(image_list, dtype=tf.string)
     labels = tf.convert_to_tensor(label_list, dtype=tf.int32)
     
-    # Makes an input queue
     input_queue = tf.train.slice_input_producer(
         [images, labels], num_epochs=num_epochs, shuffle=shuffle
     )
     
     image_l, image_ab = load_image_from_path(input_queue)
     
-    # image.set_shape([250, 250, 3])
-    # image = tf.random_crop(image, [224, 224, 3])
-    # image = tf.image.resize_images(image, [224, 224])
-    
-    # Optional Preprocessing or Data Augmentation
-    # tf.image implements most of the standard image augmentation
-    # image = preprocess_image(image)
-    # label = preprocess_label(label)
     
     capacity = 100 + 3 * batch_size
     
-    # Optional Image and Label Batching
     image_batch_l, image_batch_ab = tf.train.batch(
         [image_l, image_ab],
         batch_size=batch_size,
