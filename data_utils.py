@@ -27,25 +27,28 @@ def load_image_from_path(input_queue):
 
 
 def read_imagenet_data(path, batch_size, num_epochs, shuffle=True):
-    image_list, label_list = read_image_path(path)
     
-    images = tf.convert_to_tensor(image_list, dtype=tf.string)
-    labels = tf.convert_to_tensor(label_list, dtype=tf.int32)
-    
-    input_queue = tf.train.slice_input_producer(
-        [images, labels], num_epochs=num_epochs, shuffle=shuffle
-    )
-    
-    image_l, image_ab = load_image_from_path(input_queue)
-    
-    
-    capacity = 100 + 3 * batch_size
-    
-    image_batch_l, image_batch_ab = tf.train.batch(
-        [image_l, image_ab],
-        batch_size=batch_size,
-        capacity=capacity
-    )
+    # Performing all the async data preprocessing on CPU.
+    with tf.device('/cpu:0'):
+        image_list, label_list = read_image_path(path)
+        
+        images = tf.convert_to_tensor(image_list, dtype=tf.string)
+        labels = tf.convert_to_tensor(label_list, dtype=tf.int32)
+        
+        input_queue = tf.train.slice_input_producer(
+            [images, labels], num_epochs=num_epochs, shuffle=shuffle
+        )
+        
+        image_l, image_ab = load_image_from_path(input_queue)
+        
+        
+        capacity = 100 + 3 * batch_size
+        
+        image_batch_l, image_batch_ab = tf.train.batch(
+            [image_l, image_ab],
+            batch_size=batch_size,
+            capacity=capacity
+        )
     
     return image_batch_l, image_batch_ab
     
