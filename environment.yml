@@ -1,0 +1,16 @@
+name: icolor_tf
+channels:
+    - https://conda.anaconda.org/menpo
+dependencies:
+    - python
+    - numpy
+    - scipy
+    - numba
+    - h5py
+    - matplotlib
+    - opencv
+    - scikit-learn
+    - pip:
+        - Cython
+        - scikit-image
+        - tensorflow-gpu
