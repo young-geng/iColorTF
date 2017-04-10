@@ -54,7 +54,7 @@ def split_lab(x):
     
     
 def random_reveal_mask(image_ab):
-    # image_ab: H x W x 3
+    # image_ab: H x W x 2
     p_numpatch = 0.125 # probability for number of patches to use drawn from geometric distribution
     p_min_size = 0 # half-patch min size
     p_max_size = 4 # half-patch max size
