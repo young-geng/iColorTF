@@ -1,10 +1,14 @@
+import os
+
 import numpy as np
 import skimage.color
 
 import tensorflow as tf
 
+from model import AttrDict
 
-def read_image_path(image_path_file):
+
+def read_image_path(image_path_file, path_prefix):
     image_path = []
     image_labels = []
     with open(image_path_file) as fin:
@@ -12,7 +16,7 @@ def read_image_path(image_path_file):
             ss = line.split()
             if len(ss) < 2:
                 continue
-            image_path.append(ss[0])
+            image_path.append(os.path.join(path_prefix, ss[0]))
             image_labels.append(int(ss[1]))
     return image_path, image_labels
         
@@ -72,11 +76,14 @@ def random_reveal(image_ab):
     return mask, reveal_ab
 
 
-def read_imagenet_data(path, batch_size, num_epochs, shuffle=True):
+def read_imagenet_data(file_list_path, path_prefix, batch_size, num_epochs, shuffle=True):
     
     # Performing all the async data preprocessing on CPU.
     with tf.device('/cpu:0'):
-        image_list, label_list = read_image_path(path)
+        info = AttrDict()
+        
+        image_list, label_list = read_image_path(file_list_path, path_prefix)
+        info.num_examples = len(image_list)
         
         images = tf.convert_to_tensor(image_list, dtype=tf.string)
         labels = tf.convert_to_tensor(label_list, dtype=tf.int32)
@@ -96,4 +103,4 @@ def read_imagenet_data(path, batch_size, num_epochs, shuffle=True):
             capacity=capacity
         )
     
-    return image_batch_l, image_batch_ab
+    return image_batch_l, image_batch_ab, info

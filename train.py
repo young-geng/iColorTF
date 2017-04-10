@@ -9,9 +9,11 @@ from data_utils import *
 
 if __name__ == '__main__':
     batch_size = 16
+    num_epochs = 10
     
-    image_l, image_ab = read_imagenet_data(
-        'data/train.txt', batch_size, num_epochs=10, shuffle=False
+    image_l, image_ab, dataset_info = read_imagenet_data(
+        'data/train.txt', '/home/young/data/dataset/ILSVRC2012',
+        batch_size, num_epochs=None, shuffle=False
     )
     
     data_ab = tf.zeros([batch_size, 224, 224, 2])
@@ -21,7 +23,7 @@ if __name__ == '__main__':
     
     train_op = tf.train.AdamOptimizer().minimize(unet.loss)
     
-    init_op = tf.group(tf.global_variables_initializer(), tf.initialize_local_variables())
+    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     
     sess = tf.Session()
     
@@ -30,18 +32,19 @@ if __name__ == '__main__':
     
     sess.run(init_op)
     
-    iterations = 0
+    n_iterations = int(num_epochs * dataset_info.num_examples / batch_size)
     
-    try:
-        while not coord.should_stop():
-            loss = sess.run([unet.loss, train_op])[0]
-            print 'Iteration: {}, Loss: {}'.format(iterations, loss)
-            iterations += 1
+    for iterations in xrange(n_iterations):
+        loss = sess.run([unet.loss, train_op])[0]
+        print 'Epoch: {} / {}, Batch: {} / {}, Loss: {}'.format(
+            int(iterations * batch_size / dataset_info.num_examples),
+            num_epochs,
+            iterations % int(dataset_info.num_examples / batch_size),
+            int(dataset_info.num_examples / batch_size),
+            loss
+        )
     
-    except tf.errors.OutOfRangeError:
-        print('Done training -- epoch limit reached')
-    finally:
-        coord.request_stop()
+    coord.request_stop()
     
     coord.join(threads)
     sess.close()
