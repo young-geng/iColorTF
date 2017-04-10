@@ -24,6 +24,52 @@ def load_image_from_path(input_queue):
     image_array = tf.cast(image_array, tf.uint8)
     image_l, image_ab = split_lab(rgb2lab(image_array))
     return image_l, image_ab
+    
+    
+def batch_rgb2lab(x):
+    # x: N x H x W x 3 or H x W x 3
+    if len(x.shape) == 3:
+        x = skimage.color.rgb2lab(x)
+    else:
+        x = np.swapaxes(x, 0, 2)
+        x = skimage.color.rgb2lab(x)
+        x = np.swapaxes(x, 0, 2)
+    return x.astype(np.float32)
+    
+    
+def rgb2lab(x):
+    ret_val = tf.py_func(batch_rgb2lab, [x], tf.float32, stateful=False)
+    ret_val.set_shape(x.get_shape())
+    return ret_val
+    
+
+def split_lab(x):
+    if len(x.shape) == 3:
+        l = tf.slice(x, [0, 0, 0], [-1, -1, 1])
+        ab = tf.slice(x, [0, 0, 1], [-1, -1, 2])
+    else:
+        l = tf.slice(x, [0, 0, 0, 0], [-1, -1, -1, 1])
+        ab = tf.slice(x, [0, 0, 0, 1], [-1, -1, -1, 2])
+    return l, ab
+    
+    
+def random_reveal_mask(image_ab):
+    # image_ab: H x W x 3
+    p_numpatch = 0.125 # probability for number of patches to use drawn from geometric distribution
+    p_min_size = 0 # half-patch min size
+    p_max_size = 4 # half-patch max size
+    p_std = .25 # percentage of image for std where patch is located
+    self.p_whole = .01
+    
+    pass
+    
+    
+def random_reveal(image_ab):
+    """ Randomly reveal patches in ab channels."""
+    mask = tf.py_func(random_reveal_python, [image_ab], tf.float32, stateful=False)
+    mask.set_shape(image_ab.shape[0], image_ab.shape[1], 1)
+    reveal_ab = mask * image_ab
+    return mask, reveal_ab
 
 
 def read_imagenet_data(path, batch_size, num_epochs, shuffle=True):
@@ -51,30 +97,3 @@ def read_imagenet_data(path, batch_size, num_epochs, shuffle=True):
         )
     
     return image_batch_l, image_batch_ab
-    
-
-def batch_rgb2lab(x):
-    # x: N x D x D x 3
-    if len(x.shape) == 3:
-        x = skimage.color.rgb2lab(x)
-    else:
-        x = np.swapaxes(x, 0, 2)
-        x = skimage.color.rgb2lab(x)
-        x = np.swapaxes(x, 0, 2)
-    return x.astype(np.float32)
-    
-    
-def rgb2lab(x):
-    ret_val = tf.py_func(batch_rgb2lab, [x], tf.float32, stateful=False)
-    ret_val.set_shape(x.get_shape())
-    return ret_val
-    
-
-def split_lab(x):
-    if len(x.shape) == 3:
-        l = tf.slice(x, [0, 0, 0], [-1, -1, 1])
-        ab = tf.slice(x, [0, 0, 1], [-1, -1, 2])
-    else:
-        l = tf.slice(x, [0, 0, 0, 0], [-1, -1, -1, 1])
-        ab = tf.slice(x, [0, 0, 0, 1], [-1, -1, -1, 2])
-    return l, ab
