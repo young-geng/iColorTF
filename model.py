@@ -49,9 +49,9 @@ def subsample2d(input_tensor, strides=2):
     )  # Use average pool to simulate a subsample
     
 
-def batch_norm(input_tensor):
+def batch_norm(input_tensor, training):
     return tf.layers.batch_normalization(
-        input_tensor, axis=0
+        input_tensor, axis=0, training=training
     )
     
     
@@ -77,6 +77,8 @@ class iColorUNet(object):
         net.data_mask = data_mask
         net.groud_truth_ab = groud_truth_ab
         
+        net.is_training = tf.placeholder_with_default(False, [])
+        
         self.build_unet()
         
     def build_unet(self):
@@ -97,7 +99,7 @@ class iColorUNet(object):
         
         net.conv1_2, net.relu1_2 = conv2d_relu(net.relu1_1, filters=64)
         
-        net.conv1_2norm = batch_norm(net.relu1_2)
+        net.conv1_2norm = batch_norm(net.relu1_2, training=net.is_training)
         
         
         # Conv2
@@ -108,7 +110,7 @@ class iColorUNet(object):
         
         net.conv2_2, net.relu2_2 = conv2d_relu(net.relu2_1, filters=128)
         
-        net.conv2_2norm = batch_norm(net.relu2_2)
+        net.conv2_2norm = batch_norm(net.relu2_2, training=net.is_training)
         
         
         # Conv3
@@ -121,7 +123,7 @@ class iColorUNet(object):
         
         net.conv3_3, net.relu3_3 = conv2d_relu(net.relu3_2, filters=256)
         
-        net.conv3_3norm = batch_norm(net.relu3_3)
+        net.conv3_3norm = batch_norm(net.relu3_3, training=net.is_training)
         
         
         # Conv4
@@ -134,7 +136,7 @@ class iColorUNet(object):
         
         net.conv4_3, net.relu4_3 = conv2d_relu(net.relu4_2, filters=512)
         
-        net.conv4_3norm = batch_norm(net.relu4_3)
+        net.conv4_3norm = batch_norm(net.relu4_3, training=net.is_training)
         
         
         # Conv 5
@@ -151,7 +153,7 @@ class iColorUNet(object):
             net.relu5_2, filters=512, padding=2, dilation=2
         )
         
-        net.conv5_3norm = batch_norm(net.relu5_3)
+        net.conv5_3norm = batch_norm(net.relu5_3, training=net.is_training)
         
         
         # Conv 6
@@ -168,7 +170,7 @@ class iColorUNet(object):
             net.relu6_2, filters=512, padding=2, dilation=2
         )
         
-        net.conv6_3norm = batch_norm(net.relu6_3)
+        net.conv6_3norm = batch_norm(net.relu6_3, training=net.is_training)
         
         
         # Conv 7
@@ -185,7 +187,7 @@ class iColorUNet(object):
             net.relu7_2, filters=512
         )
         
-        net.conv7_3norm = batch_norm(net.relu7_3)
+        net.conv7_3norm = batch_norm(net.relu7_3, training=net.is_training)
         
         
         # Conv8
@@ -207,7 +209,7 @@ class iColorUNet(object):
             net.relu8_2, filters=256
         )
         
-        net.conv8_3norm = batch_norm(net.relu8_3)
+        net.conv8_3norm = batch_norm(net.relu8_3, training=net.is_training)
         
         
         # Conv9
@@ -227,7 +229,7 @@ class iColorUNet(object):
             net.relu9_1_comb, filters=128
         )
         
-        net.conv9_2norm = batch_norm(net.relu9_2)
+        net.conv9_2norm = batch_norm(net.relu9_2, training=net.is_training)
         
         
         # Conv10
@@ -267,6 +269,10 @@ class iColorUNet(object):
     @property
     def loss(self):
         return self.net.loss_ab
+        
+    @property
+    def is_training(self):
+        return self.net.is_training
         
     
         

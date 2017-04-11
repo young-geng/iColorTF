@@ -35,11 +35,11 @@ if __name__ == '__main__':
     n_iterations = int(num_epochs * dataset_info.num_examples / batch_size)
     
     for iterations in xrange(n_iterations):
-        loss = sess.run([unet.loss, train_op])[0]
+        loss = sess.run([unet.loss, train_op], {unet.is_training: True})[0]
         print 'Epoch: {} / {}, Batch: {} / {}, Loss: {}'.format(
-            int(iterations * batch_size / dataset_info.num_examples),
+            int(iterations * batch_size / dataset_info.num_examples) + 1,
             num_epochs,
-            iterations % int(dataset_info.num_examples / batch_size),
+            iterations % int(dataset_info.num_examples / batch_size) + 1,
             int(dataset_info.num_examples / batch_size),
             loss
         )
