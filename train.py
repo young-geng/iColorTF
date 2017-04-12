@@ -11,15 +11,13 @@ if __name__ == '__main__':
     batch_size = 16
     num_epochs = 10
     
-    image_l, image_ab, dataset_info = read_imagenet_data(
+    image_l, image_ab, revealed, dataset_info = read_imagenet_data(
         'data/train.txt', '/home/young/data/dataset/ILSVRC2012',
         batch_size, num_epochs=None, shuffle=False
     )
     
-    data_ab = tf.zeros([batch_size, 224, 224, 2])
-    data_mask = tf.zeros([batch_size, 224, 224, 1])
     
-    unet = iColorUNet(image_l, data_ab, data_mask, image_ab)
+    unet = iColorUNet(image_l, revealed, image_ab)
     
     train_op = tf.train.AdamOptimizer().minimize(unet.loss)
     

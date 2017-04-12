@@ -67,14 +67,13 @@ def conv2d_relu(*args, **kwargs):
 
 class iColorUNet(object):
     
-    def __init__(self, data_l, data_ab, data_mask, groud_truth_ab):
+    def __init__(self, data_l, data_ab_mask, groud_truth_ab):
     
         self.net = AttrDict()
         net = self.net
         
         net.data_l = data_l
-        net.data_ab = data_ab
-        net.data_mask = data_mask
+        net.data_ab_mask = data_ab_mask
         net.groud_truth_ab = groud_truth_ab
         
         net.is_training = tf.placeholder_with_default(False, [])
@@ -83,8 +82,6 @@ class iColorUNet(object):
         
     def build_unet(self):
         net = self.net
-        
-        net.data_ab_mask = tf.concat([net.data_ab, net.data_mask], axis=3)
         
         net.data_l_meansub = net.data_l - 50.0
         
