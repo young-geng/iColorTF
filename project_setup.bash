@@ -3,8 +3,6 @@
 
 export PROJECT_HOME="$(pwd)"
 
-export IMAGENET_ROOT='/data/efros/dataset/ILSVRC2012'
-
 alias ph="cd PROJECT_HOME"
 
 
