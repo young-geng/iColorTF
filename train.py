@@ -27,10 +27,13 @@ def create_logging_dir():
         '%Y-%m-%d_%H-%M-%S_{}'.format(os.uname()[1])
     )
     
-    experiment_data_dir = 'output/{}'.format(experiment_date_host)
+    experiment_data_dir = os.path.join('output', experiment_date_host)
+    checkpoint_dir = os.path.join(experiment_data_dir, 'checkpoint')
+    
     
     os.makedirs(experiment_data_dir)
-    return experiment_data_dir
+    os.makedirs(checkpoint_dir)
+    return experiment_data_dir, checkpoint_dir
 
 
 def record_batch_image(ground_truth, reveal, prediction, fname):
@@ -38,10 +41,15 @@ def record_batch_image(ground_truth, reveal, prediction, fname):
     idx = np.random.randint(0, ground_truth.shape[0])
     
     ground_truth = ground_truth[idx, :, :, :]
+    gray_scale = ground_truth.copy()
+    gray_scale[:, :, 1:] = 0
     reveal = reveal[idx, :, :, :]
     prediction = prediction[idx, :, :, :]
     
-    combined = np.concatenate([ground_truth, reveal, prediction], axis=1)
+    combined_1 = np.concatenate([gray_scale, ground_truth], axis=1)
+    combined_2 = np.concatenate([reveal, prediction], axis=1)
+    
+    combined = np.concatenate([combined_1, combined_2], axis=0)
     combined = clip_lab(combined)
     combined_rgb = lab2rgb(combined)
     imsave(fname, combined_rgb)
@@ -50,7 +58,7 @@ def record_batch_image(ground_truth, reveal, prediction, fname):
 def record_unet_output(ground_truth, reveal, prediction, log_dir, epoch, batch):
     fname = os.path.join(
         log_dir,
-        '{}__{}.png'.format(epoch, batch)
+        '{}_{}.png'.format(epoch, batch)
     )
     record_batch_image(ground_truth, reveal, prediction, fname)
     
@@ -59,9 +67,10 @@ def record_unet_output(ground_truth, reveal, prediction, log_dir, epoch, batch):
 if __name__ == '__main__':
     batch_size = 24
     num_epochs = 10
-    display_every_itr = 500
+    display_every_itr = 100
+    checkpoint_every_itr = 5000
     
-    log_dir = create_logging_dir()
+    log_dir, checkpoint_dir = create_logging_dir()
     
     image_l, image_ab, revealed, dataset_info = read_imagenet_data(
         'data/train.txt', os.environ['IMAGENET_ROOT'],
@@ -79,6 +88,8 @@ if __name__ == '__main__':
     
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+    
+    saver = tf.train.Saver()
     
     sess.run(init_op)
     
@@ -105,6 +116,9 @@ if __name__ == '__main__':
             num_batches,
             loss
         )
+        
+        if iterations % checkpoint_every_itr == 0:
+            saver.save(sess, os.path.join(checkpoint_dir, 'model_{}_{}.ckpt'.format(epoch_idx, batch_idx)))
         
     
     coord.request_stop()
