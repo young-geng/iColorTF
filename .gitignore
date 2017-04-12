@@ -102,6 +102,9 @@ ENV/
 # Training data
 data
 
+# Training output
+output
+
 log.txt
 
 run.sh

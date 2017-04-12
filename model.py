@@ -67,14 +67,20 @@ def conv2d_relu(*args, **kwargs):
 
 class iColorUNet(object):
     
-    def __init__(self, data_l, data_ab_mask, groud_truth_ab):
+    def __init__(self, data_l, groud_truth_ab, reveal_ab_mask):
     
         self.net = AttrDict()
         net = self.net
         
         net.data_l = data_l
-        net.data_ab_mask = data_ab_mask
+        net.reveal_ab_mask = reveal_ab_mask
         net.groud_truth_ab = groud_truth_ab
+        
+        net.groud_truth_lab = tf.concat([data_l, groud_truth_ab], axis=3)
+        net.reveal_lab = tf.concat(
+            [tf.ones_like(data_l) * 60, tf.slice(reveal_ab_mask, [0, 0, 0, 0], [-1, -1, -1, 2])],
+            axis=3
+        )
         
         net.is_training = tf.placeholder_with_default(False, [])
         
@@ -88,7 +94,7 @@ class iColorUNet(object):
         # Note here we use the caffe tradition of channel first
         net.bw_conv1_1 = conv2d(net.data_l_meansub, filters=64)
         
-        net.ab_conv1_1 = conv2d(net.data_ab_mask, filters=64)
+        net.ab_conv1_1 = conv2d(net.reveal_ab_mask, filters=64)
         
         net.conv1_1 = net.bw_conv1_1 + net.ab_conv1_1
         
@@ -254,14 +260,20 @@ class iColorUNet(object):
         
         net.pred_ab_2 = net.pred_ab_1 * 100
         
+        net.pred_lab = tf.concat([net.data_l, net.pred_ab_2], axis=3)
+        
         net.loss_ab = tf.reduce_mean(
             tf.losses.absolute_difference(net.pred_ab_2, net.groud_truth_ab)
         )
         
         
     @property
-    def prediction(self):
+    def prediction_ab(self):
         return self.net.pred_ab_2
+        
+    @property
+    def prediction_lab(self):
+        return self.net.pred_lab
     
     @property
     def loss(self):
@@ -270,6 +282,14 @@ class iColorUNet(object):
     @property
     def is_training(self):
         return self.net.is_training
+        
+    @property
+    def groud_truth_lab(self):
+        return self.net.groud_truth_lab
+        
+    @property
+    def reveal_lab(self):
+        return self.net.reveal_lab
         
     
         
