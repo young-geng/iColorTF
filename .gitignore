@@ -108,3 +108,5 @@ output
 log.txt
 
 run.sh
+
+project_setup.bash

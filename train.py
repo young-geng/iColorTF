@@ -57,14 +57,14 @@ def record_unet_output(ground_truth, reveal, prediction, log_dir, epoch, batch):
 
 
 if __name__ == '__main__':
-    batch_size = 16
+    batch_size = 24
     num_epochs = 10
     display_every_itr = 500
     
     log_dir = create_logging_dir()
     
     image_l, image_ab, revealed, dataset_info = read_imagenet_data(
-        'data/train.txt', '/home/young/data/dataset/ILSVRC2012',
+        'data/train.txt', os.environ['IMAGENET_ROOT'],
         batch_size, num_epochs=None, shuffle=False
     )
     
