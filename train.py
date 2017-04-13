@@ -38,7 +38,7 @@ def create_logging_dir():
     return experiment_data_dir, checkpoint_dir
 
 
-def record_batch_image(ground_truth, reveal, prediction, fname):
+def record_batch_image(ground_truth, reveal, prediction, mask, fname):
     
     idx = np.random.randint(0, ground_truth.shape[0])
     
@@ -47,6 +47,9 @@ def record_batch_image(ground_truth, reveal, prediction, fname):
     gray_scale[:, :, 1:] = 0
     reveal = reveal[idx, :, :, :]
     prediction = prediction[idx, :, :, :]
+    mask = mask[idx, :, :, :] > 0
+    
+    reveal = reveal * mask
     
     combined_1 = np.concatenate([gray_scale, ground_truth], axis=1)
     combined_2 = np.concatenate([reveal, prediction], axis=1)
@@ -57,12 +60,12 @@ def record_batch_image(ground_truth, reveal, prediction, fname):
     imsave(fname, combined_rgb)
     
     
-def record_unet_output(ground_truth, reveal, prediction, log_dir, epoch, batch):
+def record_unet_output(ground_truth, reveal, prediction, mask, log_dir, epoch, batch):
     fname = os.path.join(
         log_dir,
         '{}_{}.png'.format(epoch, batch)
     )
-    record_batch_image(ground_truth, reveal, prediction, fname)
+    record_batch_image(ground_truth, reveal, prediction, mask, fname)
     
 
 def parse_args():
@@ -135,11 +138,15 @@ if __name__ == '__main__':
         last_time = time.time()
         
         if iterations % display_every_itr == 0:
-            loss, ground_truth, reveal, prediction, _ = sess.run(
-                [unet.loss, unet.groud_truth_lab, unet.reveal_lab, unet.prediction_lab, train_op],
+            loss, ground_truth, reveal, prediction, mask, _ = sess.run(
+                [unet.loss, unet.groud_truth_lab, unet.reveal_lab,
+                 unet.prediction_lab, unet.reveal_mask, train_op],
                 {unet.is_training: True}
             )
-            record_unet_output(ground_truth, reveal, prediction, log_dir, epoch_idx, batch_idx)
+            record_unet_output(
+                ground_truth, reveal, prediction, mask,
+                log_dir, epoch_idx, batch_idx
+            )
             
         else:
             loss = sess.run([unet.loss, train_op], {unet.is_training: True})[0]

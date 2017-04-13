@@ -82,6 +82,8 @@ class iColorUNet(object):
             axis=3
         )
         
+        net.reveal_mask = tf.slice(reveal_ab_mask, [0, 0, 0, 2], [-1, -1, -1, 1])
+        
         net.is_training = tf.placeholder_with_default(False, [])
         
         self.build_unet()
@@ -290,6 +292,10 @@ class iColorUNet(object):
     @property
     def reveal_lab(self):
         return self.net.reveal_lab
+        
+    @property
+    def reveal_mask(self):
+        return self.net.reveal_mask
         
     
         
