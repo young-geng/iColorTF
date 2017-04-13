@@ -1,5 +1,7 @@
 import os
 import datetime
+import argparse
+import time
 
 import numpy as np
 
@@ -63,20 +65,50 @@ def record_unet_output(ground_truth, reveal, prediction, log_dir, epoch, batch):
     record_batch_image(ground_truth, reveal, prediction, fname)
     
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train the iColor model.')
+    parser.add_argument(
+        '--batch_size', type=int, default=24,
+        help='batch size'
+    )
+    parser.add_argument(
+        '--num_epochs', type=int, default=10,
+        help='number of epochs'
+    )
+    parser.add_argument(
+        '--display_every_itr', type=int, default=300,
+        help='save a image every N iterations'
+    )
+    parser.add_argument(
+        '--checkpoint_every_itr', type=int, default=5000,
+        help='save the model every N iterations'
+    )
+    parser.add_argument(
+        '--data_root', type=str, required=True,
+        help='root dir for image data'
+    )
+    parser.add_argument(
+        '--image_list', type=str, required=True,
+        help='a file containing the list of all image filenames'
+    )
+    args = parser.parse_args()
+    return args
+
 
 if __name__ == '__main__':
-    batch_size = 24
-    num_epochs = 10
-    display_every_itr = 100
-    checkpoint_every_itr = 5000
+    args = parse_args()
+    
+    batch_size = args.batch_size
+    num_epochs = args.num_epochs
+    display_every_itr = args.display_every_itr
+    checkpoint_every_itr = args.checkpoint_every_itr
     
     log_dir, checkpoint_dir = create_logging_dir()
     
     image_l, image_ab, revealed, dataset_info = read_imagenet_data(
-        'data/train.txt', os.environ['IMAGENET_ROOT'],
+        args.image_list, args.data_root,
         batch_size, num_epochs=None, shuffle=False
     )
-    
     
     unet = iColorUNet(image_l, image_ab, revealed)
     
@@ -100,6 +132,8 @@ if __name__ == '__main__':
         epoch_idx = int(iterations * batch_size / dataset_info.num_examples) + 1
         batch_idx = iterations % int(dataset_info.num_examples / batch_size) + 1
         
+        last_time = time.time()
+        
         if iterations % display_every_itr == 0:
             loss, ground_truth, reveal, prediction, _ = sess.run(
                 [unet.loss, unet.groud_truth_lab, unet.reveal_lab, unet.prediction_lab, train_op],
@@ -109,12 +143,13 @@ if __name__ == '__main__':
             
         else:
             loss = sess.run([unet.loss, train_op], {unet.is_training: True})[0]
-        print 'Epoch: {} / {}, Batch: {} / {}, Loss: {}'.format(
+        print 'Epoch: {} / {}, Batch: {} / {}, Loss: {}, Batch time: {} ms'.format(
             epoch_idx,
             num_epochs,
             batch_idx,
             num_batches,
-            loss
+            loss,
+            int((time.time() - last_time) * 1000.)
         )
         
         if iterations % checkpoint_every_itr == 0:
