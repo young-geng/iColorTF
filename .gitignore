@@ -107,6 +107,6 @@ output
 
 log.txt
 
-run.sh
+run*.sh
 
 project_setup.bash
