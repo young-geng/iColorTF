@@ -296,13 +296,3 @@ class iColorUNet(object):
     @property
     def reveal_mask(self):
         return self.net.reveal_mask
-        
-    
-        
-    
-        
-        
-        
-        
-        
-        
