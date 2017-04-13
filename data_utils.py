@@ -128,7 +128,7 @@ def read_imagenet_data(file_list_path, path_prefix, batch_size, num_epochs, shuf
         revealed = random_reveal(image_ab)
         
         
-        capacity = 100 + 3 * batch_size
+        capacity = 3 * batch_size
         
         image_batch_l, image_batch_ab, revealed_batch = tf.train.batch(
             [image_l, image_ab, revealed],
