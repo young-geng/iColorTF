@@ -63,30 +63,84 @@ def conv2d_relu(*args, **kwargs):
     c = conv2d(*args, **kwargs)
     r = relu(c)
     return c, r
+    
+    
+class iColorUNetMultiGPU(object):
+    
+    def __init__(self, data_l, groud_truth_ab, reveal_ab_mask, n_copy=2):
+        
+        self.nets = []
+        
+        batch_size = data_l.shape[0]
+        
+        with tf.device('/cpu:0'):
+            # Create all variables on CPU
+            data_l_splitted = tf.split(data_l, n_copy, axis=0)
+            groud_truth_ab_splitted = tf.split(groud_truth_ab, n_copy, axis=0)
+            reveal_ab_mask_splitted = tf.split(reveal_ab_mask, n_copy, axis=0)
+            self.cpu_net = iColorUNet(
+                tf.zeros_like(data_l_splitted[0]),
+                tf.zeros_like(groud_truth_ab_splitted[0]),
+                tf.zeros_like(reveal_ab_mask_splitted[0]),
+                reuse=False
+            )
+        
+        for i in xrange(n_copy):
+            with tf.device('/gpu:{}'.format(i)):
+                self.nets.append(
+                    iColorUNet(
+                        data_l_splitted[i], groud_truth_ab_splitted[i],
+                        reveal_ab_mask_splitted[i], reuse=True
+                    )
+                )
+         
+        with tf.device('/cpu:0'):     
+            self.loss = tf.add_n([n.loss for n in self.nets])
+            self.prediction_ab = tf.concat(
+                [n.prediction_ab for n in self.nets], axis=0
+            )
+            self.prediction_lab = tf.concat(
+                [n.prediction_lab for n in self.nets], axis=0
+            )
+            self.is_training = self.nets[0].is_training
+            
+            self.groud_truth_lab = tf.concat(
+                [n.groud_truth_lab for n in self.nets], axis=0
+            )
+            self.reveal_lab = tf.concat(
+                [n.reveal_lab for n in self.nets], axis=0
+            )
+            self.reveal_mask = tf.concat(
+                [n.reveal_mask for n in self.nets], axis=0
+            )
 
 
 class iColorUNet(object):
     
-    def __init__(self, data_l, groud_truth_ab, reveal_ab_mask):
+    def __init__(self, data_l, groud_truth_ab, reveal_ab_mask, reuse=False):
     
         self.net = AttrDict()
         net = self.net
         
-        net.data_l = data_l
-        net.reveal_ab_mask = reveal_ab_mask
-        net.groud_truth_ab = groud_truth_ab
+        with tf.variable_scope('iColorUNet') as scope:
+            if reuse:
+                scope.reuse_variables()
         
-        net.groud_truth_lab = tf.concat([data_l, groud_truth_ab], axis=3)
-        net.reveal_lab = tf.concat(
-            [tf.ones_like(data_l) * 60, tf.slice(reveal_ab_mask, [0, 0, 0, 0], [-1, -1, -1, 2])],
-            axis=3
-        )
-        
-        net.reveal_mask = tf.slice(reveal_ab_mask, [0, 0, 0, 2], [-1, -1, -1, 1])
-        
-        net.is_training = tf.placeholder_with_default(False, [])
-        
-        self.build_unet()
+            net.data_l = data_l
+            net.reveal_ab_mask = reveal_ab_mask
+            net.groud_truth_ab = groud_truth_ab
+            
+            net.groud_truth_lab = tf.concat([data_l, groud_truth_ab], axis=3)
+            net.reveal_lab = tf.concat(
+                [tf.ones_like(data_l) * 60, tf.slice(reveal_ab_mask, [0, 0, 0, 0], [-1, -1, -1, 2])],
+                axis=3
+            )
+            
+            net.reveal_mask = tf.slice(reveal_ab_mask, [0, 0, 0, 2], [-1, -1, -1, 1])
+            
+            net.is_training = tf.placeholder_with_default(False, [])
+            
+            self.build_unet()
         
     def build_unet(self):
         net = self.net

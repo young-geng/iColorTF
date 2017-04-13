@@ -9,7 +9,7 @@ import tensorflow as tf
 from skimage.color import lab2rgb
 from skimage.io import imsave
 
-from model import iColorUNet
+from model import iColorUNet, iColorUNetMultiGPU
 from data_utils import *
 
 
@@ -94,6 +94,10 @@ def parse_args():
         '--image_list', type=str, required=True,
         help='a file containing the list of all image filenames'
     )
+    parser.add_argument(
+        '--n_gpus', type=int, default=1,
+        help='number of GPUs to use'
+    )
     args = parser.parse_args()
     return args
 
@@ -113,13 +117,20 @@ if __name__ == '__main__':
         batch_size, num_epochs=None, shuffle=False
     )
     
-    unet = iColorUNet(image_l, image_ab, revealed)
+    if args.n_gpus != 1:
+        unet = iColorUNetMultiGPU(image_l, image_ab, revealed, args.n_gpus)
+    else:
+        unet = iColorUNet(image_l, image_ab, revealed)
     
     train_op = tf.train.AdamOptimizer().minimize(unet.loss)
     
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     
-    sess = tf.Session()
+    sess = tf.Session(
+        config=tf.ConfigProto(
+            allow_soft_placement=True
+        )
+    )
     
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
