@@ -10,20 +10,21 @@ from model import AttrDict
 
 def read_image_path(image_path_file, path_prefix):
     image_path = []
-    image_labels = []
     with open(image_path_file) as fin:
         for line in fin:
             ss = line.split()
-            if len(ss) < 2:
-                continue
             image_path.append(os.path.join(path_prefix, ss[0]))
-            image_labels.append(int(ss[1]))
-    return image_path, image_labels
+                
+    return image_path
         
 
-def load_image_from_path(input_queue):
-    image_label = input_queue[1]
-    image_array = tf.image.decode_jpeg(tf.read_file(input_queue[0]), channels=3)
+def load_image_from_path(input_queue, image_code):
+    if image_code == 'png':
+        image_array = tf.image.decode_png(tf.read_file(input_queue[0]), channels=3)
+    elif image_code == 'jpeg':
+        image_array = tf.image.decode_jpeg(tf.read_file(input_queue[0]), channels=3)
+    else:
+        raise ValueError('Unsupported image format!')
     image_array = tf.image.resize_images(image_array, [224, 224])
     image_array = tf.cast(image_array, tf.uint8)
     image_l, image_ab = split_lab(rgb2lab(image_array))
@@ -114,17 +115,26 @@ def read_imagenet_data(file_list_path, path_prefix, batch_size, num_epochs, shuf
     with tf.device('/cpu:0'):
         info = AttrDict()
         
-        image_list, label_list = read_image_path(file_list_path, path_prefix)
+        image_list = read_image_path(file_list_path, path_prefix)
+        
+        image_type = image_list[0].split('.')[-1].lower()
+        
+        if image_type in ('jpeg', 'jpg'):
+            image_code = 'jpeg'
+        elif image_type == 'png':
+            image_code = 'png'
+        else:
+            raise ValueError('Unsupported image format!')
+        
         info.num_examples = len(image_list)
         
         images = tf.convert_to_tensor(image_list, dtype=tf.string)
-        labels = tf.convert_to_tensor(label_list, dtype=tf.int32)
         
         input_queue = tf.train.slice_input_producer(
-            [images, labels], num_epochs=num_epochs, shuffle=shuffle
+            [images], num_epochs=num_epochs, shuffle=shuffle
         )
         
-        image_l, image_ab = load_image_from_path(input_queue)
+        image_l, image_ab = load_image_from_path(input_queue, image_code)
         revealed = random_reveal(image_ab)
         
         
