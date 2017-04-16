@@ -51,7 +51,7 @@ def subsample2d(input_tensor, strides=2):
 
 def batch_norm(input_tensor, training):
     return tf.layers.batch_normalization(
-        input_tensor, axis=0, training=training
+        input_tensor, training=training
     )
     
     
