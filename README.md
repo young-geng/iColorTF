@@ -19,7 +19,7 @@ Tensorflow implementation of the iColor user guided image colorization network.
 source activate icolor_tf
 ```
 
-## Run Training
+## Training
 - Run `train.sh` to train the model.
 - Edit the `train.sh` to set the data source and appropriate batch size.
     - The image list should be a file containing a path to an image in each line,
