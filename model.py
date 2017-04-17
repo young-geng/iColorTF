@@ -34,7 +34,7 @@ def conv2d(input_tensor, filters, kernel_size=3, strides=1,
     
     
 def deconv2d(input_tensor, filters, kernel_size=3, strides=1):
-    
+    # Deconvolution
     return tf.layers.conv2d_transpose(
         input_tensor,
         filters=filters, kernel_size=kernel_size, strides=strides,
@@ -46,7 +46,7 @@ def subsample2d(input_tensor, strides=2):
     return tf.nn.avg_pool(
         input_tensor, ksize=[1, 1, 1, 1], strides=[1, strides, strides, 1],
         padding='VALID', data_format='NHWC'
-    )  # Use average pool to simulate a subsample
+    )  # Use average pool to simulate a subsample in height and width
     
 
 def batch_norm(input_tensor, training):
@@ -78,11 +78,14 @@ class iColorUNet(object):
         
         net.groud_truth_lab = tf.concat([data_l, groud_truth_ab], axis=3)
         net.reveal_lab = tf.concat(
-            [tf.ones_like(data_l) * 60, tf.slice(reveal_ab_mask, [0, 0, 0, 0], [-1, -1, -1, 2])],
+            [tf.ones_like(data_l) * 60,
+             tf.slice(reveal_ab_mask, [0, 0, 0, 0], [-1, -1, -1, 2])],
             axis=3
         )
         
-        net.reveal_mask = tf.slice(reveal_ab_mask, [0, 0, 0, 2], [-1, -1, -1, 1])
+        net.reveal_mask = tf.slice(
+            reveal_ab_mask, [0, 0, 0, 2], [-1, -1, -1, 1]
+        )
         
         net.is_training = tf.placeholder_with_default(False, [])
         

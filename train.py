@@ -26,7 +26,7 @@ def clip_lab(image):
 
 def create_logging_dir():
     experiment_date_host = datetime.datetime.today().strftime(
-        '%Y-%m-%d_%H-%M-%S_{}'.format(os.uname()[1])
+        '%Y-%m-%d_%H-%M-%S'
     )
     
     experiment_data_dir = os.path.join('output', experiment_date_host)
