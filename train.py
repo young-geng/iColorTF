@@ -22,6 +22,21 @@ def clip_lab(image):
          np.clip(b, -107.863 + e, 94.482 - e)],
         axis=2
     ).astype(np.float64)
+    
+    
+def format_dict(d):
+    """ Format nested dictionaries to a readable string. """
+    s = ['']
+    def helper(d, s, depth=0):
+        for k,v in sorted(d.items(), key=lambda x: x[0]):
+            if isinstance(v, dict):
+                s[0] += ("  ")*depth + ("%s: {" % k) + ',\n'
+                helper(v, s, depth+1)
+                s[0] += ("  ")*depth + ("}") + ',\n'
+            else:
+                s[0] += ("  ")*depth + "%s: %s" % (k, v) + ',\n'
+    helper(d, s)
+    return s[0]
 
 
 def create_logging_dir():
@@ -94,6 +109,22 @@ def parse_args():
         '--image_list', type=str, required=True,
         help='a file containing the list of all image filenames'
     )
+    parser.add_argument(
+        '--learning_rate', type=float, default=0.001,
+        help='adam learning rate'
+    )
+    parser.add_argument(
+        '--adam_beta1', type=float, default=0.9,
+        help='adam beta 1'
+    )
+    parser.add_argument(
+        '--adam_beta2', type=float, default=0.999,
+        help='adam beta2'
+    )
+    parser.add_argument(
+        '--adam_epsilon', type=float, default=1e-8,
+        help='adam epsilon'
+    )
     args = parser.parse_args()
     return args
 
@@ -108,6 +139,9 @@ if __name__ == '__main__':
     
     log_dir, checkpoint_dir = create_logging_dir()
     
+    with open(os.path.join(log_dir, 'args.txt'), 'w') as fout:
+        fout.write(format_dict(vars(args)))
+    
     image_l, image_ab, revealed, dataset_info = read_imagenet_data(
         args.image_list, args.data_root,
         batch_size, num_epochs=None, shuffle=False
@@ -115,7 +149,10 @@ if __name__ == '__main__':
     
     unet = iColorUNet(image_l, image_ab, revealed)
     
-    train_op = tf.train.AdamOptimizer().minimize(unet.loss)
+    train_op = tf.train.AdamOptimizer(
+        learning_rate=args.learning_rate, beta1=args.adam_beta1,
+        beta2=args.adam_beta2, epsilon=args.adam_epsilon
+    ).minimize(unet.loss)
     
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     
