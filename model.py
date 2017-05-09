@@ -63,6 +63,15 @@ def conv2d_relu(*args, **kwargs):
     c = conv2d(*args, **kwargs)
     r = relu(c)
     return c, r
+    
+    
+def smooth_l1(input_tensor):
+    abs_val = tf.abs(input_tensor)
+    return tf.where(
+        tf.less_equal(abs_val, 1.0),
+        0.5 * tf.square(input_tensor),
+        abs_val - 0.5
+    )
 
 
 class iColorUNet(object):
@@ -268,7 +277,7 @@ class iColorUNet(object):
         net.pred_lab = tf.concat([net.data_l, net.pred_ab_2], axis=3)
         
         net.loss_ab = tf.reduce_mean(
-            tf.losses.absolute_difference(net.pred_ab_2, net.groud_truth_ab)
+            smooth_l1(net.pred_ab_2 - net.groud_truth_ab)
         )
         
         
